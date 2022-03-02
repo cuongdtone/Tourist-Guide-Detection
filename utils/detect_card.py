@@ -4,13 +4,10 @@ from models.yolov5 import Y5Detect
 import os
 
 class detect_card:
-    def __init__(self, weights_person='', weights_card='', weights_classification='', detect_person=True, use_cuda=False):
+    def __init__(self, weights_person='', weights_card='', weights_classification='', use_cuda=False):
 
         self.y5_card = Y5Detect(weights=weights_card, use_cuda=use_cuda)
         self.model_classification = mobilenetv3(weights=weights_classification, use_cuda=use_cuda)
-        self.detect_person = detect_person
-        if self.detect_person:
-            self.y5_person = Y5Detect(weights=weights_person, use_cuda=use_cuda)
         self.corner_threshold = 0
     def predict(self, image_bgr, show=True):
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)

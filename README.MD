@@ -7,3 +7,7 @@ Green Global Company
 
 ## Author
 Tran Chi Cuong 
+## Usage  
+```buildoutcfg
+python=3.6
+```

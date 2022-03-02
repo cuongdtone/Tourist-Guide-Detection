@@ -118,7 +118,6 @@ def draw_bboxes(image, bboxes_card, labels_card, scores, scores_classification):
                         thickness=2,
                         fontScale=1,
                         color=(0,0,255))
-
     return image_show
 def draw_boxes_yolo(image, boxes, scores=None, labels=None, class_names=None, line_thickness=2, font_scale=2.0,
                font_thickness=3):
@@ -144,41 +143,57 @@ def draw_boxes_yolo(image, boxes, scores=None, labels=None, class_names=None, li
 
             ret, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
             cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, line_thickness)
-            cv2.rectangle(image, (xmin, ymax - ret[1] - baseline), (xmin + ret[0], ymax), (255, 255, 255), -1)
-            cv2.putText(image, label, (xmin, ymax - baseline), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255),
-                        font_thickness)
-    elif labels is not None:
-        for b, l in zip(boxes, labels):
-            xmin, ymin, xmax, ymax = list(map(int, b))
-            idx = class_names.index(l)
-            color = colors[idx]
-
-            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 2)
-    elif scores is not None:
-        idx = 0
-        for b, s in zip(boxes, scores):
-            xmin, ymin, xmax, ymax = list(map(int, b))
-            score = '{:.4f}'.format(s)
-            color = colors[idx]
-            label = '-'.join([score])
-            idx += 1
-
-            ret, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 2)
-            # cv2.rectangle(image, (xmin, ymax - ret[1] - baseline), (xmin + ret[0], ymax), color, -1)
-            cv2.putText(image, label, (xmin, ymax - baseline), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-    else:
-        color = (0, 255, 0)
-        for b in boxes:
-            xmin, ymin, xmax, ymax = list(map(int, b))
-            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 1)
+            #cv2.rectangle(image, (xmin, ymax - ret[1] - baseline), (xmin + ret[0], ymax), (255, 255, 255), -1)
+            #cv2.putText(image, label, (xmin, ymax - baseline), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255),
+             #           font_thickness)
     return image
-def get_person(bboxes, labels, scores, threshold=0.5):
+from deep_sort.utils.draw import *
+def draw_bboxes_track(image, track_results, offset=(0, 0)):
+    for i in track_results:
+        x1, y1, x2, y2, id, _ = i
+        x1 += offset[0]
+        x2 += offset[0]
+        y1 += offset[1]
+        y2 += offset[1]
+        # box text and bar
+        color = compute_color_for_labels(id)
+        label = '{}{:d}'.format("", id)
+        t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 3)
+        cv2.rectangle(image, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
+        cv2.putText(image, label, (x1, y1 + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
+    return image
+def get_person(bboxes, labels, scores, threshold=0.6, labels_idx = False):
     new_bboxes, new_labels, new_scores = [], [], []
     for idx, label in enumerate(labels):
         if label =="person" and scores[idx]>threshold:
             new_bboxes.append(bboxes[idx])
             new_scores.append(scores[idx])
-            new_labels.append(label)
+            if not labels_idx:
+                new_labels.append(label)
+            else:
+                new_labels.append(0)
     return new_bboxes, new_labels, new_scores
-
+def xyxy_conf_clss(bboxes, labels, scores):
+    out = []
+    for idx, label in enumerate(labels):
+        temp =bboxes[idx][:] + [scores[idx]] + [0]
+        out.append(temp)
+    return out
+def xyxy_to_xywh(box):
+    x_min, ymin, x_max, y_max = box
+    w = x_max - x_min
+    h = y_max - ymin
+    x = round((x_max + x_min)/2)
+    y = round((y_max + ymin)/2)
+    return [x, y, w, h]
+def xyxys_to_xywhs(bboxes):
+    xywhs = []
+    for box in bboxes:
+        x_min, ymin, x_max, y_max = box
+        w = x_max - x_min
+        h = y_max - ymin
+        x = round((x_max + x_min) / 2)
+        y = round((y_max + ymin) / 2)
+        xywhs.append([x, y, w, h])
+    return xywhs
